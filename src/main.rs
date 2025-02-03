@@ -61,7 +61,7 @@ impl ReactionDiffusion {
     pub const DIFFUSION_B: f32 = 0.5;
     pub const FEED: f32 = 0.055;
     pub const KILL: f32 = 0.062;
-    pub const FILL_AMOUNT: f32 = 0.2;
+    pub const FILL_AMOUNT: f32 = 0.1;
 
     pub fn new(height: usize, width: usize) -> Self {
         const DEFAULT_CELL: Cell = Cell { a: 1.0, b: 0.0 };
@@ -93,22 +93,6 @@ impl ReactionDiffusion {
     }
 
     fn process_grid(&mut self) {
-        /*
-        for (let x = 1; x < width - 1; x++) {
-            for (let y = 1; y < height - 1; y++) {
-                let a = grid[x][y].a;
-                let b = grid[x][y].b;
-                next[x][y].a =
-                a + DIFFUSION_A * laplaceA(x, y) - a * b * b + FEED * (1 - a);
-
-                next[x][y].b =
-                b + DIFFUSION_B * laplaceB(x, y) + a * b * b - (KILL + FEED) * b;
-
-                next[x][y].a = constrain(next[x][y].a, 0, 1);
-                next[x][y].b = constrain(next[x][y].b, 0, 1);
-            }
-        }
-        */
         fn constrain(value: f32, min: f32, max: f32) -> f32 {
             if value < min {
                 min
@@ -204,10 +188,8 @@ impl ReactionDiffusion {
 }
 
 fn main() -> std::io::Result<()> {
-    let mut rd = ReactionDiffusion::new(50 as usize, 50 as usize);
+    let mut rd = ReactionDiffusion::new(200 as usize, 200 as usize);
     let running = Arc::new(AtomicBool::new(false));
-
-    let frame = rd.get_next_frame();
 
     signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&running))?;
 
@@ -216,13 +198,15 @@ fn main() -> std::io::Result<()> {
     let mut handle = stdout.lock();
 
     while !running.load(Ordering::Relaxed) {
+        // Get next frame
+        let frame = rd.get_next_frame();
         // Clear terminal and set cursor to row 1 col 1
         handle.write_all(format!("{esc}[2J{esc}[1;1H", esc = 27 as char).as_bytes())?;
         handle.write_all(frame.as_bytes())?;
         handle.write_all(format!("{i}\n").as_bytes())?;
         handle.flush()?;
         i += 1;
-        thread::sleep(Duration::from_millis(100));
+        thread::sleep(Duration::from_millis(17));
     }
 
     Ok(())
